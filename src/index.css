@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--color-bg);
+}
+
+@media (min-width: 481px) {
+  body {
+    background: color-mix(in srgb, var(--color-bg-muted) 60%, #888 40%);
+  }
+
+  .app-shell {
+    box-shadow: var(--shadow-float);
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+  }
+}
+
+.hero-gradient {
+  background: var(--gradient-hero);
+}
+
+.card-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.bg-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+.bg-primary-soft {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.bg-success-soft {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.bg-accent-soft {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.bg-warning-soft {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.design-nav-panel {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 0.75rem;
+  z-index: 100;
+  max-width: calc(100vw - 1.5rem);
+}
+
+@media (min-width: 481px) {
+  .design-nav-panel {
+    right: calc(50% - 240px + 0.75rem);
+  }
+}
