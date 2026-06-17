@@ -3,6 +3,7 @@ import type { MealRecord } from '@/types/meal'
 export const initialMealRecords: MealRecord[] = [
   {
     id: 'm1',
+    userId: 'mock-alex',
     photoUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=600&fit=crop',
     caption: '自備健康便當，省錢又安心',
     mealType: 'lunch',
@@ -14,6 +15,7 @@ export const initialMealRecords: MealRecord[] = [
   },
   {
     id: 'm2',
+    userId: 'mock-jamie',
     photoUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=600&fit=crop',
     caption: '加班叫的外賣 pizza',
     mealType: 'dinner',
@@ -25,6 +27,7 @@ export const initialMealRecords: MealRecord[] = [
   },
   {
     id: 'm3',
+    userId: 'mock-alex',
     photoUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&h=600&fit=crop',
     caption: '在家做的鬆餅早餐',
     mealType: 'breakfast',
@@ -36,6 +39,7 @@ export const initialMealRecords: MealRecord[] = [
   },
   {
     id: 'm4',
+    userId: 'mock-jamie',
     photoUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=600&fit=crop',
     caption: '週五和同事去燒烤',
     mealType: 'dinner',
@@ -47,6 +51,7 @@ export const initialMealRecords: MealRecord[] = [
   },
   {
     id: 'm5',
+    userId: 'mock-alex',
     photoUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=600&fit=crop',
     caption: '公司飯堂雞胸餐盒',
     mealType: 'lunch',
@@ -58,6 +63,7 @@ export const initialMealRecords: MealRecord[] = [
   },
   {
     id: 'm6',
+    userId: 'mock-jamie',
     photoUrl: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=600&h=600&fit=crop',
     caption: 'WFH 時做的法式吐司',
     mealType: 'breakfast',

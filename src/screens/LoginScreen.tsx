@@ -1,25 +1,89 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
+import { SupabaseSetupBanner } from '@/components/auth/SupabaseSetupBanner'
+import { useAuth } from '@/context/AuthContext'
+import { getPostAuthPath, translateAuthError } from '@/lib/auth-utils'
 
 export function LoginScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { configured, signInWithEmail, signInWithGoogle, refreshProfile } = useAuth()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  const configMissing = (location.state as { configMissing?: boolean } | null)?.configMissing
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!configured) return
+
+    setLoading(true)
+    setError(null)
+
+    const { error: authError } = await signInWithEmail(email.trim(), password)
+    if (authError) {
+      setError(translateAuthError(authError))
+      setLoading(false)
+      return
+    }
+
+    const nextProfile = await refreshProfile()
+    navigate(getPostAuthPath(nextProfile), { replace: true })
+    setLoading(false)
+  }
+
+  async function handleGoogle() {
+    if (!configured) return
+    setGoogleLoading(true)
+    setError(null)
+    const { error: authError } = await signInWithGoogle()
+    if (authError) {
+      setError(translateAuthError(authError))
+      setGoogleLoading(false)
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col">
       <ScreenHeader title="登入" subtitle="歡迎回來" backTo="/" />
+      {(configMissing || !configured) && <SupabaseSetupBanner />}
 
-      <motion.div
+      <motion.form
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleSubmit}
         className="flex-1 px-4 flex flex-col gap-5"
       >
-        <Input label="電郵" type="email" placeholder="you@example.com" />
-        <Input label="密碼" type="password" placeholder="••••••••" />
+        <Input
+          label="電郵"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Input
+          label="密碼"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+        />
 
-        <Button fullWidth size="lg" onClick={() => navigate('/pair')}>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <Button fullWidth size="lg" type="submit" loading={loading} disabled={!configured}>
           登入
         </Button>
 
@@ -32,7 +96,15 @@ export function LoginScreen() {
           </p>
         </div>
 
-        <Button variant="outline" fullWidth icon={<GoogleIcon />}>
+        <Button
+          type="button"
+          variant="outline"
+          fullWidth
+          icon={<GoogleIcon />}
+          loading={googleLoading}
+          disabled={!configured}
+          onClick={handleGoogle}
+        >
           Google 登入
         </Button>
 
@@ -42,7 +114,7 @@ export function LoginScreen() {
             註冊
           </Link>
         </p>
-      </motion.div>
+      </motion.form>
     </div>
   )
 }

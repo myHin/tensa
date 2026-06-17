@@ -1,17 +1,77 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
 import { useApp } from '@/context/AppContext'
+import { useAuth } from '@/context/AuthContext'
+import { useCouple } from '@/context/CoupleContext'
+import { getPostAuthPath } from '@/lib/auth-utils'
+import { translatePairingError } from '@/lib/pairing'
 
 export function PairScreen() {
   const navigate = useNavigate()
-  const { inviteCode } = useApp()
-  const [mode, setMode] = useState<'create' | 'join'>('create')
+  const { profile } = useAuth()
+  const { inviteCode: appInviteCode, isPaired } = useApp()
+  const { inviteCode, isWaitingForPartner, createCouple, joinCouple, loading } = useCouple()
+
+  const [mode, setMode] = useState<'create' | 'join'>(profile?.couple_id ? 'create' : 'create')
   const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const displayCode = inviteCode ?? appInviteCode
+  const hasCoupleSpace = Boolean(profile?.couple_id && displayCode)
+
+  useEffect(() => {
+    if (isPaired && profile) {
+      navigate(getPostAuthPath(profile), { replace: true })
+    }
+  }, [isPaired, profile, navigate])
+
+  async function handleCreate() {
+    setActionLoading(true)
+    setError(null)
+    try {
+      const result = await createCouple()
+      if (!result.ok) {
+        setError(translatePairingError(result.error))
+        return
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '建立失敗')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleJoin() {
+    setActionLoading(true)
+    setError(null)
+    try {
+      const result = await joinCouple(code)
+      if (!result.ok) {
+        setError(translatePairingError(result.error))
+        return
+      }
+      navigate('/profile-setup', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加入失敗')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    if (!displayCode) return
+    await navigator.clipboard.writeText(displayCode)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -23,7 +83,10 @@ export function PairScreen() {
             <button
               key={m}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => {
+                setMode(m)
+                setError(null)
+              }}
               className={[
                 'flex-1 py-2 text-sm font-semibold rounded-[var(--radius-lg)] transition-all',
                 mode === m
@@ -43,51 +106,75 @@ export function PairScreen() {
         animate={{ opacity: 1, x: 0 }}
         className="flex-1 px-4 flex flex-col gap-4"
       >
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
         {mode === 'create' ? (
           <>
-            <Card padding="lg" className="text-center hero-gradient border-none">
-              <p className="text-sm text-muted mb-2">你的邀請碼</p>
-              <motion.p
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                className="text-4xl font-bold tracking-[0.3em] text-[var(--color-primary)] mb-3"
-              >
-                {inviteCode}
-              </motion.p>
-              <p className="text-xs text-muted">分享給另一半，讓對方輸入此碼即可配對</p>
-            </Card>
+            {hasCoupleSpace ? (
+              <>
+                <Card padding="lg" className="text-center hero-gradient border-none">
+                  <p className="text-sm text-muted mb-2">你的邀請碼</p>
+                  <motion.p
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    className="text-4xl font-bold tracking-[0.3em] text-[var(--color-primary)] mb-3"
+                  >
+                    {displayCode}
+                  </motion.p>
+                  {isWaitingForPartner ? (
+                    <Badge variant="warning">等待另一半加入</Badge>
+                  ) : (
+                    <Badge variant="success">已配對</Badge>
+                  )}
+                  <p className="text-xs text-muted mt-3">分享給另一半，讓對方輸入此碼即可配對</p>
+                </Card>
 
-            <div className="flex gap-2">
-              <Button variant="secondary" fullWidth>
-                複製邀請碼
-              </Button>
-              <Button variant="outline" fullWidth>
-                分享連結
-              </Button>
-            </div>
+                <div className="flex gap-2">
+                  <Button variant="secondary" fullWidth onClick={handleCopy}>
+                    {copied ? '已複製！' : '複製邀請碼'}
+                  </Button>
+                </div>
 
-            <Card padding="md" className="flex items-start gap-3">
-              <span className="text-xl">💡</span>
-              <div>
-                <p className="text-sm font-semibold mb-1">簡單配對</p>
-                <p className="text-xs text-muted leading-relaxed">
-                  只需 6 位邀請碼，無需複雜審批。配對後即可共享簽到與情侶點數。
-                </p>
-              </div>
-            </Card>
+                <Button
+                  fullWidth
+                  size="lg"
+                  className="mt-auto mb-6"
+                  onClick={() => navigate('/profile-setup')}
+                >
+                  {isWaitingForPartner ? '先設定個人資料' : '進入主頁'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Card padding="lg" className="text-center">
+                  <p className="text-4xl mb-4">💑</p>
+                  <p className="font-semibold mb-2">建立你們的情侶空間</p>
+                  <p className="text-sm text-muted leading-relaxed">
+                    系統會產生 6 位邀請碼，分享給另一半即可配對。
+                  </p>
+                </Card>
 
-            <Button fullWidth size="lg" className="mt-auto mb-6" onClick={() => navigate('/profile-setup')}>
-              等待對方加入… 先設定個人資料
-            </Button>
+                <Button
+                  fullWidth
+                  size="lg"
+                  className="mt-auto mb-6"
+                  loading={actionLoading || loading}
+                  onClick={handleCreate}
+                >
+                  建立情侶空間
+                </Button>
+              </>
+            )}
           </>
         ) : (
           <>
             <Input
               label="輸入邀請碼"
-              placeholder="例如 LOVE10"
+              placeholder="例如 ABC123"
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
               hint="向你的另一半索取 6 位邀請碼"
+              maxLength={6}
             />
 
             <Card padding="md" className="bg-primary-soft border-none">
@@ -104,7 +191,8 @@ export function PairScreen() {
               size="lg"
               className="mt-auto mb-6"
               disabled={code.length < 4}
-              onClick={() => navigate('/profile-setup')}
+              loading={actionLoading}
+              onClick={handleJoin}
             >
               加入情侶空間
             </Button>

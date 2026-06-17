@@ -1,13 +1,25 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Toggle } from '@/components/ui/Toggle'
+import { CyclePrivacyControls } from '@/components/cycle/CyclePrivacyControls'
 import { useTheme } from '@/context/ThemeContext'
 import { themePresets } from '@/design-system/themes'
 import { useApp } from '@/context/AppContext'
+import { useAuth } from '@/context/AuthContext'
+import { useCyclePrivacy } from '@/context/CycleContext'
 
 export function SettingsScreen() {
+  const navigate = useNavigate()
   const { themeId, mode, setThemeId, toggleMode } = useTheme()
   const { profile, inviteCode } = useApp()
+  const { user, signOut, configured } = useAuth()
+  const {
+    shareLogsWithPartner,
+    sharePredictionWithPartner,
+  } = useCyclePrivacy()
 
   return (
     <div>
@@ -19,9 +31,30 @@ export function SettingsScreen() {
           <Card padding="none">
             <SettingRow label="你的名字" value={profile.name} />
             <SettingRow label="另一半" value={profile.partnerName} border />
-            <SettingRow label="邀請碼" value={inviteCode} border />
-            <SettingRow label="交往紀念日" value="2016-06-16" border />
+            {inviteCode ? (
+              <SettingRow label="邀請碼" value={inviteCode} border />
+            ) : null}
+            {profile.anniversary ? (
+              <SettingRow label="交往紀念日" value={profile.anniversary} border />
+            ) : (
+              <SettingRow label="交往紀念日" value="未設定" border />
+            )}
           </Card>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">生理期隱私</h2>
+          <CyclePrivacyControls partnerName={profile.partnerName} />
+          <p className="text-xs text-muted mt-2 px-1 leading-relaxed">
+            目前狀態：
+            {shareLogsWithPartner && sharePredictionWithPartner
+              ? ` ${profile.partnerName} 可查看記錄與預測`
+              : shareLogsWithPartner
+                ? ` 僅分享記錄給 ${profile.partnerName}`
+                : sharePredictionWithPartner
+                  ? ` 僅分享預測給 ${profile.partnerName}`
+                  : ' 全部資料僅自己可見'}
+          </p>
         </section>
 
         <section>
@@ -61,17 +94,31 @@ export function SettingsScreen() {
         <section>
           <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">通知</h2>
           <Card padding="none">
-            <ToggleRow label="簽到提醒" defaultOn />
-            <ToggleRow label="紀念日提醒" defaultOn border />
-            <ToggleRow label="生理期預測提醒" border />
+            <NotificationToggle label="簽到提醒" defaultOn />
+            <NotificationToggle label="紀念日提醒" defaultOn border />
+            <NotificationToggle label="生理期預測提醒" border />
           </Card>
         </section>
 
         <section>
           <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">帳號</h2>
           <Card padding="md" className="space-y-2">
-            <Button variant="outline" fullWidth>Google 帳號已連結</Button>
-            <Button variant="ghost" fullWidth className="text-red-500">
+            {user?.email && (
+              <p className="text-xs text-muted text-center pb-1">{user.email}</p>
+            )}
+            <Button variant="outline" fullWidth disabled={!configured}>
+              Google 帳號已連結
+            </Button>
+            <Button
+              variant="ghost"
+              fullWidth
+              className="text-red-500"
+              disabled={!configured}
+              onClick={async () => {
+                await signOut()
+                navigate('/', { replace: true })
+              }}
+            >
               登出
             </Button>
           </Card>
@@ -92,23 +139,13 @@ function SettingRow({ label, value, border }: { label: string; value: string; bo
   )
 }
 
-function ToggleRow({ label, defaultOn, border }: { label: string; defaultOn?: boolean; border?: boolean }) {
+function NotificationToggle({ label, defaultOn, border }: { label: string; defaultOn?: boolean; border?: boolean }) {
+  const [on, setOn] = useState(!!defaultOn)
+
   return (
     <div className={['flex items-center justify-between px-4 py-3', border ? 'border-t border-[var(--color-border)]' : ''].join(' ')}>
       <span className="text-sm">{label}</span>
-      <div
-        className={[
-          'w-11 h-6 rounded-full relative transition-colors',
-          defaultOn ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
-        ].join(' ')}
-      >
-        <div
-          className={[
-            'absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform',
-            defaultOn ? 'translate-x-6' : 'translate-x-1',
-          ].join(' ')}
-        />
-      </div>
+      <Toggle checked={on} onChange={setOn} label={label} />
     </div>
   )
 }

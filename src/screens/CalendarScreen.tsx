@@ -3,6 +3,10 @@ import { motion } from 'framer-motion'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { CyclePrivacyControls } from '@/components/cycle/CyclePrivacyControls'
+import { PartnerCycleView } from '@/components/cycle/PartnerCycleView'
+import { useApp } from '@/context/AppContext'
+import { useCyclePrivacy } from '@/context/CycleContext'
 import { calendarDays, upcomingEvents, cycleInfo } from '@/data/mock'
 
 export function CalendarScreen() {
@@ -103,46 +107,91 @@ function EventsTab() {
 }
 
 function CycleTab() {
+  const { profile } = useApp()
+  const { shareLogsWithPartner, sharePredictionWithPartner } = useCyclePrivacy()
+  const [previewAsPartner, setPreviewAsPartner] = useState(false)
+
+  const sharingLabel = (() => {
+    if (shareLogsWithPartner && sharePredictionWithPartner) return `${profile.partnerName} 可查看全部`
+    if (sharePredictionWithPartner) return `${profile.partnerName} 僅可查看預測`
+    if (shareLogsWithPartner) return `${profile.partnerName} 僅可查看記錄`
+    return '僅自己可見'
+  })()
+
+  const badgeVariant =
+    shareLogsWithPartner || sharePredictionWithPartner ? 'success' : 'accent'
+
   return (
     <div className="px-4 space-y-4 pb-4">
-      <Card padding="lg" className="hero-gradient border-none">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-muted mb-1">預測下次生理期</p>
-            <p className="text-2xl font-bold">{cycleInfo.nextPredicted}</p>
-            <p className="text-xs text-muted mt-2">平均週期 {cycleInfo.avgCycle} 天 · AI 監測中</p>
-          </div>
-          <Badge variant="accent">僅自己可見</Badge>
-        </div>
-      </Card>
-
-      <Card padding="md">
-        <h3 className="font-semibold mb-3">快速記錄</h3>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" className="py-3 rounded-[var(--radius-lg)] bg-primary-soft font-semibold text-sm text-[var(--color-primary)]">
-            開始生理期
+      <div className="flex p-1 rounded-[var(--radius-xl)] bg-[var(--color-bg-muted)]">
+        {([
+          [false, '我的記錄'],
+          [true, `預覽 ${profile.partnerName} 視角`],
+        ] as const).map(([isPartner, label]) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setPreviewAsPartner(isPartner)}
+            className={[
+              'flex-1 py-2 text-xs font-semibold rounded-[var(--radius-lg)] transition-all',
+              previewAsPartner === isPartner ? 'bg-[var(--color-surface)] shadow-sm' : 'text-muted',
+            ].join(' ')}
+          >
+            {label}
           </button>
-          <button type="button" className="py-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-muted)] font-semibold text-sm">
-            結束生理期
-          </button>
-        </div>
-      </Card>
-
-      <section>
-        <h3 className="font-bold mb-3">最近紀錄</h3>
-        {cycleInfo.recentLogs.map((log) => (
-          <Card key={log.id} padding="sm" className="mb-2 flex justify-between items-center">
-            <div>
-              <p className="text-sm font-medium">{log.range}</p>
-              <p className="text-xs text-muted">{log.duration} 天 · {log.cycle} 天週期</p>
-            </div>
-            {log.note && <Badge variant="muted">{log.note}</Badge>}
-          </Card>
         ))}
-      </section>
+      </div>
+
+      {!previewAsPartner ? (
+        <>
+          <Card padding="lg" className="hero-gradient border-none">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm text-muted mb-1">預測下次生理期</p>
+                <p className="text-2xl font-bold">{cycleInfo.nextPredicted}</p>
+                <p className="text-xs text-muted mt-2">平均週期 {cycleInfo.avgCycle} 天 · AI 監測中</p>
+              </div>
+              <Badge variant={badgeVariant}>{sharingLabel}</Badge>
+            </div>
+          </Card>
+
+          <CyclePrivacyControls partnerName={profile.partnerName} compact />
+
+          <Card padding="md">
+            <h3 className="font-semibold mb-3">快速記錄</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" className="py-3 rounded-[var(--radius-lg)] bg-primary-soft font-semibold text-sm text-[var(--color-primary)]">
+                開始生理期
+              </button>
+              <button type="button" className="py-3 rounded-[var(--radius-lg)] bg-[var(--color-bg-muted)] font-semibold text-sm">
+                結束生理期
+              </button>
+            </div>
+          </Card>
+
+          <section>
+            <h3 className="font-bold mb-3">最近紀錄</h3>
+            {cycleInfo.recentLogs.map((log) => (
+              <Card key={log.id} padding="sm" className="mb-2 flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium">{log.range}</p>
+                  <p className="text-xs text-muted">{log.duration} 天 · {log.cycle} 天週期</p>
+                </div>
+                {log.note && <Badge variant="muted">{log.note}</Badge>}
+              </Card>
+            ))}
+          </section>
+        </>
+      ) : (
+        <PartnerCycleView
+          ownerName={profile.name}
+          canViewLogs={shareLogsWithPartner}
+          canViewPrediction={sharePredictionWithPartner}
+        />
+      )}
 
       <p className="text-xs text-muted text-center px-4 leading-relaxed">
-        預測僅供參考，不構成醫療建議。可在設定中調整分享範圍。
+        預測僅供參考，不構成醫療建議。使用上方開關決定 {profile.partnerName} 能否查看記錄或預測。
       </p>
     </div>
   )

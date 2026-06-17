@@ -1,30 +1,127 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
+import { SupabaseSetupBanner } from '@/components/auth/SupabaseSetupBanner'
+import { Card } from '@/components/ui/Card'
+import { useAuth } from '@/context/AuthContext'
+import { getPostAuthPath, translateAuthError } from '@/lib/auth-utils'
 
 export function RegisterScreen() {
   const navigate = useNavigate()
+  const { configured, signUpWithEmail, signInWithGoogle, refreshProfile } = useAuth()
+
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!configured) return
+
+    setLoading(true)
+    setError(null)
+    setInfo(null)
+
+    const { error: authError, needsEmailConfirmation } = await signUpWithEmail(
+      email.trim(),
+      password,
+      displayName.trim(),
+    )
+
+    if (authError) {
+      setError(translateAuthError(authError))
+      setLoading(false)
+      return
+    }
+
+    if (needsEmailConfirmation) {
+      setInfo('註冊成功！請到電郵確認帳號後再登入。')
+      setLoading(false)
+      return
+    }
+
+    const nextProfile = await refreshProfile()
+    navigate(getPostAuthPath(nextProfile), { replace: true })
+    setLoading(false)
+  }
+
+  async function handleGoogle() {
+    if (!configured) return
+    setGoogleLoading(true)
+    setError(null)
+    const { error: authError } = await signInWithGoogle()
+    if (authError) {
+      setError(translateAuthError(authError))
+      setGoogleLoading(false)
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col">
       <ScreenHeader title="註冊" subtitle="建立你的帳號" backTo="/" />
+      {!configured && <SupabaseSetupBanner />}
 
-      <motion.div
+      <motion.form
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleSubmit}
         className="flex-1 px-4 flex flex-col gap-4"
       >
-        <Input label="暱稱" placeholder="你的名字" />
-        <Input label="電郵" type="email" placeholder="you@example.com" />
-        <Input label="密碼" type="password" placeholder="至少 8 個字元" hint="建議包含字母與數字" />
+        <Input
+          label="暱稱"
+          placeholder="你的名字"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          required
+        />
+        <Input
+          label="電郵"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Input
+          label="密碼"
+          type="password"
+          placeholder="至少 6 個字元"
+          hint="建議包含字母與數字"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+          autoComplete="new-password"
+        />
 
-        <Button fullWidth size="lg" className="mt-2" onClick={() => navigate('/pair')}>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        {info && (
+          <Card padding="sm" className="bg-success-soft border-none">
+            <p className="text-sm">{info}</p>
+          </Card>
+        )}
+
+        <Button fullWidth size="lg" className="mt-2" type="submit" loading={loading} disabled={!configured}>
           繼續
         </Button>
 
-        <Button variant="outline" fullWidth icon={<GoogleIcon />}>
+        <Button
+          type="button"
+          variant="outline"
+          fullWidth
+          icon={<GoogleIcon />}
+          loading={googleLoading}
+          disabled={!configured}
+          onClick={handleGoogle}
+        >
           Google 註冊
         </Button>
 
@@ -34,7 +131,7 @@ export function RegisterScreen() {
             登入
           </Link>
         </p>
-      </motion.div>
+      </motion.form>
     </div>
   )
 }

@@ -2,6 +2,7 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
 export interface MealRecord {
   id: string
+  userId: string
   photoUrl: string
   caption: string
   mealType: MealType

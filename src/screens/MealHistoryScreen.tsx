@@ -8,7 +8,7 @@ import { mealTypeEmoji, mealTypeLabels, type MealRecord } from '@/types/meal'
 type ViewMode = 'grid' | 'list'
 
 export function MealHistoryScreen() {
-  const { records } = useMeals()
+  const { records, loading } = useMeals()
   const [view, setView] = useState<ViewMode>('grid')
   const [selected, setSelected] = useState<MealRecord | null>(null)
 
@@ -32,6 +32,9 @@ export function MealHistoryScreen() {
       />
 
       <div className="px-4 space-y-5">
+        {loading && records.length === 0 ? (
+          <p className="text-sm text-muted text-center py-8">載入中…</p>
+        ) : null}
         {grouped.map(([dateLabel, items]) => (
           <section key={dateLabel}>
             <div className="flex items-center gap-2 mb-3">

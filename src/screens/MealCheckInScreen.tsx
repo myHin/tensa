@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { TodayMealStatus } from '@/components/meals/TodayMealStatus'
 import { useApp } from '@/context/AppContext'
+import { useAuth } from '@/context/AuthContext'
+import { useCouple } from '@/context/CoupleContext'
 import { useMeals } from '@/context/MealContext'
+import { translateDailyError } from '@/types/daily'
 import { mealTypeEmoji, mealTypeLabels, type MealType } from '@/types/meal'
 
 const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -23,24 +26,31 @@ const defaultCaptions: Record<MealType, string> = {
 export function MealCheckInScreen() {
   const navigate = useNavigate()
   const { profile } = useApp()
-  const { addMeal, hasCheckedInToday, getTodayMealByUser } = useMeals()
+  const { user } = useAuth()
+  const { partner } = useCouple()
+  const { submitMeal, hasCheckedInToday, getTodayMealByUser } = useMeals()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const userCheckedIn = hasCheckedInToday(profile.name)
-  const userMeal = getTodayMealByUser(profile.name)
-  const partnerMeal = getTodayMealByUser(profile.partnerName)
+  const userId = user?.id ?? ''
+  const partnerId = partner?.id
+
+  const userCheckedIn = hasCheckedInToday(userId)
+  const userMeal = getTodayMealByUser(userId)
+  const partnerMeal = partnerId ? getTodayMealByUser(partnerId) : undefined
 
   const [preview, setPreview] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [caption, setCaption] = useState('')
   const [mealType, setMealType] = useState<MealType>('lunch')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function handleFileSelect(selected: File | null) {
     if (!selected) return
     if (preview) URL.revokeObjectURL(preview)
     setFile(selected)
     setPreview(URL.createObjectURL(selected))
+    setError(null)
   }
 
   function clearPhoto() {
@@ -50,25 +60,33 @@ export function MealCheckInScreen() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  function handleSubmit() {
-    if (!preview || !file) return
+  async function handleSubmit() {
+    if (!file) return
     setSubmitting(true)
+    setError(null)
     const finalCaption = caption.trim() || defaultCaptions[mealType]
-    addMeal({
-      photoUrl: preview,
-      caption: finalCaption,
-      mealType,
-      uploadedBy: profile.name,
-    })
-    navigate('/app/check-in-success', {
-      state: {
-        type: 'meal',
-        mealType,
-        caption: finalCaption,
-        partnerName: profile.partnerName,
-        partnerShared: !!partnerMeal,
-      },
-    })
+
+    try {
+      const result = await submitMeal(file, finalCaption, mealType)
+      if (result.ok) {
+        navigate('/app/check-in-success', {
+          state: {
+            type: 'meal',
+            mealType,
+            caption: finalCaption,
+            partnerName: profile.partnerName,
+            partnerShared: !!partnerMeal,
+            points: result.points ?? 30,
+          },
+        })
+      } else {
+        setError(translateDailyError(result.error))
+      }
+    } catch {
+      setError('上傳失敗，請稍後再試')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (userCheckedIn && userMeal) {
@@ -218,6 +236,8 @@ export function MealCheckInScreen() {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
         />
+
+        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
 
         <Card padding="sm" className="bg-[var(--color-bg-muted)] border-none">
           <p className="text-xs text-muted leading-relaxed">

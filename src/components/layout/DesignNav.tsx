@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const designScreens = [
   { path: '/', label: 'Welcome' },
-  { path: '/login', label: 'Login' },
+  { path: '/auth/callback', label: 'Auth callback' },
   { path: '/register', label: 'Register' },
   { path: '/pair', label: 'Pair' },
   { path: '/profile-setup', label: 'Profile' },

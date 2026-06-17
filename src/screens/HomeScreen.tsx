@@ -6,26 +6,30 @@ import { PointBadge } from '@/components/ui/PointBadge'
 import { Button } from '@/components/ui/Button'
 import { TodayMealStatus } from '@/components/meals/TodayMealStatus'
 import { useApp } from '@/context/AppContext'
+import { useAuth } from '@/context/AuthContext'
+import { useCouple } from '@/context/CoupleContext'
+import { useCheckIns } from '@/context/CheckInContext'
 import { useMeals } from '@/context/MealContext'
-import { checkInTemplates, upcomingEvents } from '@/data/mock'
+import { upcomingEvents } from '@/data/mock'
 import { mealTypeLabels } from '@/types/meal'
-
-function getCheckInPath(id: string) {
-  if (id === 'meal') return '/app/meals/check-in'
-  return '/app/check-in-success'
-}
 
 export function HomeScreen() {
   const { profile, points } = useApp()
+  const { user } = useAuth()
+  const { partner } = useCouple()
+  const { templates } = useCheckIns()
   const { records, hasCheckedInToday, getTodayMealByUser } = useMeals()
   const navigate = useNavigate()
 
-  const userCheckedIn = hasCheckedInToday(profile.name)
-  const userMeal = getTodayMealByUser(profile.name)
-  const partnerMeal = getTodayMealByUser(profile.partnerName)
+  const userId = user?.id ?? ''
+  const partnerId = partner?.id
 
-  const items = checkInTemplates.map((item) =>
-    item.id === 'meal' ? { ...item, completedToday: userCheckedIn } : item,
+  const userCheckedIn = hasCheckedInToday(userId)
+  const userMeal = getTodayMealByUser(userId)
+  const partnerMeal = partnerId ? getTodayMealByUser(partnerId) : undefined
+
+  const items = templates.map((item) =>
+    item.slug === 'meal' ? { ...item, completedToday: userCheckedIn } : item,
   )
   const pending = items.filter((c) => !c.completedToday)
   const done = items.filter((c) => c.completedToday)
@@ -36,6 +40,14 @@ export function HomeScreen() {
     : partnerMeal
       ? `${profile.partnerName} 已分享${mealTypeLabels[partnerMeal.mealType]} · 輪到你了`
       : '分享你今天吃了什麼'
+
+  function goToCheckIn(slug: string) {
+    if (slug === 'meal') {
+      navigate('/app/meals/check-in')
+      return
+    }
+    navigate('/app/check-ins')
+  }
 
   return (
     <div className="pb-4">
@@ -92,8 +104,8 @@ export function HomeScreen() {
               >
                 <CheckInRow
                   item={item}
-                  mealSubtitle={item.id === 'meal' ? mealSubtitle : undefined}
-                  onComplete={() => navigate(getCheckInPath(item.id))}
+                  mealSubtitle={item.slug === 'meal' ? mealSubtitle : undefined}
+                  onComplete={() => goToCheckIn(item.slug)}
                 />
               </motion.div>
             ))}
@@ -101,9 +113,9 @@ export function HomeScreen() {
               <CheckInRow
                 key={item.id}
                 item={item}
-                mealSubtitle={item.id === 'meal' ? mealSubtitle : undefined}
-                onView={item.id === 'meal' ? () => navigate('/app/meals/check-in') : undefined}
-                onViewHistory={item.id === 'meal' ? () => navigate('/app/meals') : undefined}
+                mealSubtitle={item.slug === 'meal' ? mealSubtitle : undefined}
+                onView={item.slug === 'meal' ? () => navigate('/app/meals/check-in') : undefined}
+                onViewHistory={item.slug === 'meal' ? () => navigate('/app/meals') : undefined}
               />
             ))}
           </div>
@@ -185,6 +197,7 @@ export function HomeScreen() {
 
 interface CheckInItem {
   id: string
+  slug: string
   emoji: string
   title: string
   subtitle: string
@@ -206,7 +219,7 @@ function CheckInRow({
   onView?: () => void
   onViewHistory?: () => void
 }) {
-  const subtitle = item.id === 'meal' && mealSubtitle ? mealSubtitle : item.subtitle
+  const subtitle = item.slug === 'meal' && mealSubtitle ? mealSubtitle : item.subtitle
 
   return (
     <Card padding="sm" className="flex items-center gap-3">
@@ -236,7 +249,7 @@ function CheckInRow({
         )
       ) : (
         <Button size="sm" onClick={onComplete}>
-          {item.id === 'meal' ? '分享' : `+${item.points}`}
+          {item.slug === 'meal' ? '分享' : `+${item.points}`}
         </Button>
       )}
     </Card>

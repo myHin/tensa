@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ScreenHeader } from '@/components/layout/ScreenHeader'
@@ -6,10 +7,25 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { PointBadge } from '@/components/ui/PointBadge'
 import { useApp } from '@/context/AppContext'
-import { pointHistory, rewards } from '@/data/mock'
+import { usePoints } from '@/context/PointsContext'
+import { translateDailyError } from '@/types/daily'
 
 export function PointsScreen() {
   const { points } = useApp()
+  const { transactions, rewards, loading, redeem } = usePoints()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function handleRedeem(rewardId: string) {
+    setBusyId(rewardId)
+    try {
+      const result = await redeem(rewardId)
+      if (!result.ok) {
+        alert(translateDailyError(result.error))
+      }
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   return (
     <div>
@@ -25,12 +41,14 @@ export function PointsScreen() {
           >
             <PointBadge points={points} size="lg" />
           </motion.div>
-          <p className="text-xs text-muted mt-3">本月已賺取 +420 點</p>
         </Card>
 
         <section className="mb-6">
           <h2 className="font-bold mb-3">可兌換獎勵</h2>
           <div className="space-y-2">
+            {loading && rewards.length === 0 ? (
+              <p className="text-sm text-muted">載入中…</p>
+            ) : null}
             {rewards.map((reward) => (
               <Card key={reward.id} padding="md" hover className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-accent-soft flex items-center justify-center text-2xl">
@@ -43,7 +61,9 @@ export function PointsScreen() {
                 <Button
                   size="sm"
                   variant={points >= reward.cost ? 'primary' : 'outline'}
-                  disabled={points < reward.cost}
+                  disabled={points < reward.cost || busyId === reward.id}
+                  loading={busyId === reward.id}
+                  onClick={() => handleRedeem(reward.id)}
                 >
                   {reward.cost} 點
                 </Button>
@@ -55,23 +75,27 @@ export function PointsScreen() {
         <section>
           <h2 className="font-bold mb-3">最近紀錄</h2>
           <Card padding="none">
-            {pointHistory.map((entry, i) => (
-              <div
-                key={entry.id}
-                className={[
-                  'flex items-center justify-between px-4 py-3',
-                  i < pointHistory.length - 1 ? 'border-b border-[var(--color-border)]' : '',
-                ].join(' ')}
-              >
-                <div>
-                  <p className="text-sm font-medium">{entry.label}</p>
-                  <p className="text-xs text-muted">{entry.time}</p>
+            {transactions.length === 0 ? (
+              <p className="text-sm text-muted px-4 py-6 text-center">尚無點數紀錄</p>
+            ) : (
+              transactions.map((entry, i) => (
+                <div
+                  key={entry.id}
+                  className={[
+                    'flex items-center justify-between px-4 py-3',
+                    i < transactions.length - 1 ? 'border-b border-[var(--color-border)]' : '',
+                  ].join(' ')}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{entry.label}</p>
+                    <p className="text-xs text-muted">{entry.time}</p>
+                  </div>
+                  <Badge variant={entry.amount > 0 ? 'success' : 'warning'}>
+                    {entry.amount > 0 ? '+' : ''}{entry.amount}
+                  </Badge>
                 </div>
-                <Badge variant={entry.amount > 0 ? 'success' : 'warning'}>
-                  {entry.amount > 0 ? '+' : ''}{entry.amount}
-                </Badge>
-              </div>
-            ))}
+              ))
+            )}
           </Card>
         </section>
       </div>
@@ -88,8 +112,11 @@ export function CheckInSuccessScreen() {
     caption?: string
     partnerName?: string
     partnerShared?: boolean
+    points?: number
+    title?: string
   } | null
   const isMeal = state?.type === 'meal'
+  const points = state?.points ?? (isMeal ? 30 : 20)
 
   return (
     <div className="min-h-[70dvh] flex flex-col items-center justify-center px-6 text-center">
@@ -126,9 +153,9 @@ export function CheckInSuccessScreen() {
             ? state?.partnerShared
               ? `${state.caption ?? '你的餐點'} · 你和 ${state.partnerName ?? '對方'} 今天都分享了`
               : `${state.caption ?? '你的餐點'} · 等 ${state.partnerName ?? '對方'} 分享吧`
-            : '今晚刷牙 · 連續 5 天 🔥'}
+            : `${state?.title ?? '簽到'} · 做得好！`}
         </p>
-        <Badge variant="success" size="md">{isMeal ? '+30' : '+20'} 情侶點數</Badge>
+        <Badge variant="success" size="md">+{points} 情侶點數</Badge>
       </motion.div>
 
       <div className="mt-10 flex flex-col gap-2 w-full max-w-xs">
