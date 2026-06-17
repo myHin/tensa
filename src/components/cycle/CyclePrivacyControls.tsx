@@ -24,13 +24,13 @@ export function CyclePrivacyControls({ partnerName, compact }: CyclePrivacyContr
           label="分享生理期記錄"
           hint={`${partnerName} 可查看你的記錄`}
           checked={shareLogsWithPartner}
-          onChange={setShareLogsWithPartner}
+          onChange={(value) => void setShareLogsWithPartner(value)}
         />
         <PrivacyToggleRow
           label="分享週期預測"
           hint={`${partnerName} 可查看 AI 預測`}
           checked={sharePredictionWithPartner}
-          onChange={setSharePredictionWithPartner}
+          onChange={(value) => void setSharePredictionWithPartner(value)}
           border
         />
       </Card>
@@ -51,13 +51,13 @@ export function CyclePrivacyControls({ partnerName, compact }: CyclePrivacyContr
         label="允許查看生理期記錄"
         hint="包含開始/結束日期與最近紀錄"
         checked={shareLogsWithPartner}
-        onChange={setShareLogsWithPartner}
+        onChange={(value) => void setShareLogsWithPartner(value)}
       />
       <PrivacyToggleRow
         label="允許查看週期預測"
         hint="包含下次生理期預測與 AI 監測"
         checked={sharePredictionWithPartner}
-        onChange={setSharePredictionWithPartner}
+        onChange={(value) => void setSharePredictionWithPartner(value)}
         border
       />
     </Card>

@@ -1,17 +1,21 @@
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { cycleInfo } from '@/data/mock'
+import type { CycleLogView, CyclePrediction } from '@/types/cycle'
 
 interface PartnerCycleViewProps {
   ownerName: string
   canViewLogs: boolean
   canViewPrediction: boolean
+  logs: CycleLogView[]
+  prediction: CyclePrediction | null
 }
 
 export function PartnerCycleView({
   ownerName,
   canViewLogs,
   canViewPrediction,
+  logs,
+  prediction,
 }: PartnerCycleViewProps) {
   if (!canViewLogs && !canViewPrediction) {
     return (
@@ -38,8 +42,12 @@ export function PartnerCycleView({
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted mb-1">{ownerName} · 預測下次生理期</p>
-              <p className="text-2xl font-bold">{cycleInfo.nextPredicted}</p>
-              <p className="text-xs text-muted mt-2">平均週期 {cycleInfo.avgCycle} 天</p>
+              <p className="text-2xl font-bold">
+                {prediction?.nextPredicted ?? '資料不足'}
+              </p>
+              <p className="text-xs text-muted mt-2">
+                平均週期 {prediction?.avgCycle ?? 28} 天
+              </p>
             </div>
             <Badge variant="success">已分享</Badge>
           </div>
@@ -53,15 +61,24 @@ export function PartnerCycleView({
       {canViewLogs ? (
         <section>
           <h3 className="font-bold mb-3 text-sm">{ownerName} 的最近紀錄</h3>
-          {cycleInfo.recentLogs.map((log) => (
-            <Card key={log.id} padding="sm" className="mb-2 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium">{log.range}</p>
-                <p className="text-xs text-muted">{log.duration} 天 · {log.cycle} 天週期</p>
-              </div>
-              {log.note && <Badge variant="muted">{log.note}</Badge>}
+          {logs.length === 0 ? (
+            <Card padding="md" className="bg-[var(--color-bg-muted)] border-none text-center">
+              <p className="text-sm text-muted">尚無紀錄</p>
             </Card>
-          ))}
+          ) : (
+            logs.map((log) => (
+              <Card key={log.id} padding="sm" className="mb-2 flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium">{log.range}</p>
+                  <p className="text-xs text-muted">
+                    {log.duration ? `${log.duration} 天` : '進行中'}
+                    {log.cycleLength ? ` · ${log.cycleLength} 天週期` : ''}
+                  </p>
+                </div>
+                {log.note && <Badge variant="muted">{log.note}</Badge>}
+              </Card>
+            ))
+          )}
         </section>
       ) : (
         <Card padding="md" className="bg-[var(--color-bg-muted)] border-none text-center">

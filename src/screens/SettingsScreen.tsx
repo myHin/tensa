@@ -10,6 +10,7 @@ import { themePresets } from '@/design-system/themes'
 import { useApp } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
 import { useCyclePrivacy } from '@/context/CycleContext'
+import { genderLabels } from '@/types/profile'
 
 export function SettingsScreen() {
   const navigate = useNavigate()
@@ -27,10 +28,31 @@ export function SettingsScreen() {
 
       <div className="px-4 space-y-6 pb-4">
         <section>
-          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">情侶資料</h2>
+          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">個人資料</h2>
           <Card padding="none">
             <SettingRow label="你的名字" value={profile.name} />
-            <SettingRow label="另一半" value={profile.partnerName} border />
+            <SettingRow
+              label="性別"
+              value={profile.gender ? genderLabels[profile.gender] : '未設定'}
+              border
+            />
+            <div className="px-4 py-3 border-t border-[var(--color-border)]">
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onClick={() => navigate('/profile-setup', { state: { from: 'settings' } })}
+              >
+                編輯個人資料
+              </Button>
+            </div>
+          </Card>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">情侶資料</h2>
+          <Card padding="none">
+            <SettingRow label="另一半" value={profile.partnerName} />
             {inviteCode ? (
               <SettingRow label="邀請碼" value={inviteCode} border />
             ) : null}
@@ -42,20 +64,22 @@ export function SettingsScreen() {
           </Card>
         </section>
 
-        <section>
-          <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">生理期隱私</h2>
-          <CyclePrivacyControls partnerName={profile.partnerName} />
-          <p className="text-xs text-muted mt-2 px-1 leading-relaxed">
-            目前狀態：
-            {shareLogsWithPartner && sharePredictionWithPartner
-              ? ` ${profile.partnerName} 可查看記錄與預測`
-              : shareLogsWithPartner
-                ? ` 僅分享記錄給 ${profile.partnerName}`
-                : sharePredictionWithPartner
-                  ? ` 僅分享預測給 ${profile.partnerName}`
-                  : ' 全部資料僅自己可見'}
-          </p>
-        </section>
+        {profile.canTrackOwnCycle ? (
+          <section>
+            <h2 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wide">生理期隱私</h2>
+            <CyclePrivacyControls partnerName={profile.partnerName} />
+            <p className="text-xs text-muted mt-2 px-1 leading-relaxed">
+              目前狀態：
+              {shareLogsWithPartner && sharePredictionWithPartner
+                ? ` ${profile.partnerName} 可查看記錄與預測`
+                : shareLogsWithPartner
+                  ? ` 僅分享記錄給 ${profile.partnerName}`
+                  : sharePredictionWithPartner
+                    ? ` 僅分享預測給 ${profile.partnerName}`
+                    : ' 全部資料僅自己可見'}
+            </p>
+          </section>
+        ) : null}
 
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -96,7 +120,9 @@ export function SettingsScreen() {
           <Card padding="none">
             <NotificationToggle label="簽到提醒" defaultOn />
             <NotificationToggle label="紀念日提醒" defaultOn border />
-            <NotificationToggle label="生理期預測提醒" border />
+            {profile.canTrackOwnCycle ? (
+              <NotificationToggle label="生理期預測提醒" border />
+            ) : null}
           </Card>
         </section>
 

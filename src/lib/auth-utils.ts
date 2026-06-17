@@ -1,8 +1,9 @@
 import type { Profile } from '@/types/database'
+import { isProfileCompleteForApp } from '@/types/profile'
 
 export function getPostAuthPath(profile: Profile | null) {
   if (!profile?.couple_id) return '/pair'
-  if (!profile.display_name) return '/profile-setup'
+  if (!isProfileCompleteForApp(profile)) return '/profile-setup'
   return '/app/home'
 }
 

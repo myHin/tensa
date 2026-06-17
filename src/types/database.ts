@@ -7,6 +7,7 @@ export interface Database {
           display_name: string | null
           couple_id: string | null
           birthday: string | null
+          gender: 'female' | 'male' | 'other' | null
           created_at: string
           updated_at: string
         }
@@ -15,6 +16,7 @@ export interface Database {
           display_name?: string | null
           couple_id?: string | null
           birthday?: string | null
+          gender?: 'female' | 'male' | 'other' | null
           created_at?: string
           updated_at?: string
         }
@@ -23,6 +25,7 @@ export interface Database {
           display_name?: string | null
           couple_id?: string | null
           birthday?: string | null
+          gender?: 'female' | 'male' | 'other' | null
           created_at?: string
           updated_at?: string
         }
@@ -217,6 +220,60 @@ export interface Database {
         }
         Relationships: []
       }
+      cycle_settings: {
+        Row: {
+          user_id: string
+          couple_id: string
+          share_logs_with_partner: boolean
+          share_prediction_with_partner: boolean
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          couple_id: string
+          share_logs_with_partner?: boolean
+          share_prediction_with_partner?: boolean
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          couple_id?: string
+          share_logs_with_partner?: boolean
+          share_prediction_with_partner?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cycle_periods: {
+        Row: {
+          id: string
+          user_id: string
+          couple_id: string
+          start_date: string
+          end_date: string | null
+          note: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          couple_id: string
+          start_date: string
+          end_date?: string | null
+          note?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          couple_id?: string
+          start_date?: string
+          end_date?: string | null
+          note?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -246,6 +303,43 @@ export interface Database {
       }
       redeem_reward: {
         Args: { p_reward_id: string }
+        Returns: Json
+      }
+      ensure_cycle_settings: {
+        Args: Record<string, never>
+        Returns: Database['public']['Tables']['cycle_settings']['Row']
+      }
+      update_cycle_privacy: {
+        Args: { p_share_logs: boolean; p_share_prediction: boolean }
+        Returns: Json
+      }
+      start_cycle_period: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      end_cycle_period: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      compute_cycle_prediction: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      get_partner_cycle_snapshot: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      save_cycle_period: {
+        Args: {
+          p_start_date: string
+          p_end_date?: string | null
+          p_note?: string
+          p_id?: string | null
+        }
+        Returns: Json
+      }
+      delete_cycle_period: {
+        Args: { p_id: string }
         Returns: Json
       }
     }
